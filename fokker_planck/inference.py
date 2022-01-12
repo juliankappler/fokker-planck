@@ -25,12 +25,11 @@ class kramers_moyal:
 		self.xl = -np.inf
 		self.xr = +np.inf
 		self.N_bins = 100
-		self.N_discard = 10
 		self.dt = 'not set'
 		# the following two parameters are calculated by the program
 		# and cannot be set manually
 		self.dx = 'not set'
-		self.bin_centers = 'not set'
+		self.x = 'not set'
 		#
 		self.set_parameters(parameters)
 
@@ -70,11 +69,6 @@ class kramers_moyal:
 			pass
 		#
 		try:
-			self.N_discard = parameters['N_discard']
-		except KeyError:
-			pass
-		#
-		try:
 			self.dt = parameters['dt']
 		except KeyError:
 			pass
@@ -84,7 +78,7 @@ class kramers_moyal:
 		if self.xl > -np.inf and self.xr < np.inf:
 			self.dx = (self.xr - self.xl)/self.N_bins
 			if self.N_bins != 'not set':
-				self.bin_centers = self.xl + (np.arange(self.N_bins) + 0.5)*self.dx
+				self.x = self.xl + (np.arange(self.N_bins) + 0.5)*self.dx
 
 	def get_parameters(self,print_parameters=False):
 		'''
@@ -97,9 +91,8 @@ class kramers_moyal:
 		          'xr':self.xr,
 		          'dx':self.dx,
 		          'dt':self.dt,
-		          'N_discard':self.N_discard,
 		          'N_bins':self.N_bins,
-		          'bin_centers':self.bin_centers
+		          'x':self.x
 				  }
 		if print_parameters:
 			print("Parameters set for this instance:")
@@ -111,7 +104,6 @@ class kramers_moyal:
 			print("xr        = {0}".format(self.xr))
 			print("dx        = {0}".format(self.dx))
 			print("dt        = {0}".format(self.dt))
-			print("N_discard = {0}".format(self.N_discard))
 			print("N_bins    = {0}".format(self.N_bins))
 		return self.index_parameters
 
@@ -140,18 +132,6 @@ class kramers_moyal:
 		if self.trajectories_filename == 'not set':
 			raise RuntimeError("Filename for input trajectories not set.")
 		#
-		if self.xl == 'not set':
-			raise RuntimeError("Left boundary for inference not set.")
-		#
-		if self.xr == 'not set':
-			raise RuntimeError("Right boundary for inference not set.")
-		#
-		if self.N_bins == 'not set':
-			raise RuntimeError("N_bins not set.")
-		#
-		if self.N_discard == 'not set':
-			raise RuntimeError("N_discard not set.")
-		#
 		if self.dt == 'not set':
 			raise RuntimeError("Timestep not set.")
 
@@ -169,7 +149,11 @@ class kramers_moyal:
 			self.trajectory_lengths.append(len(current_trajectory))
 		if self.verbose:
 			print("Loaded {0} trajectories.".format(len(self.trajectories)))
+		#
 		self.trajectories_loaded = True
+		#
+		self.get_range_of_time_series()
+		self.check_bounds_of_spatial_domain()
 
 	def import_trajectories(self,trajectories):
 		#
@@ -182,7 +166,11 @@ class kramers_moyal:
 		#
 		if self.verbose:
 			print("Imported {0} trajectories.".format(len(self.trajectories)))
+		#
 		self.trajectories_loaded = True
+		#
+		self.get_range_of_time_series()
+		self.check_bounds_of_spatial_domain()
 
 	def get_range_of_time_series(self):
 		#
@@ -203,30 +191,29 @@ class kramers_moyal:
 			print("For currently loaded trajectories, minimal and maximal "\
 			+ "positions are {0:3.5f} and {1:3.5f}".format(min_pos,max_pos))
 		''';
-		return min_pos, max_pos
+		self.min_pos = min_pos
+		self.max_pos = max_pos
 
 	def check_bounds_of_spatial_domain(self):
 		#
-		min_pos, max_pos = self.get_range_of_time_series()
+		if self.xl < self.min_pos:
+			if self.xl != -np.inf:
+				print("Warning: l0 < (minimal position in dataset), i.e." \
+					+ " {0:3.5f} < {1:3.5f}.".format(self.xl,self.min_pos) \
+					+ "\n\tUsing l0 = {0:3.5f}".format(self.min_pos))
+			self.xl = self.min_pos
 		#
-		if self.xl < min_pos:
-			print("Warning: l0 < (minimal position in dataset), i.e." \
-				+ " {0:3.5f} < {1:3.5f}.".format(self.xl,min_pos) \
-				+ "\n\tUsing l0 = {0:3.5f}".format(min_pos))
-			self.xl = min_pos
-		#
-		if self.xr > max_pos:
-			print("Warning: r0 > (maximal position in dataset), i.e." \
-				+ " {0:3.5f} > {1:3.5f}.".format(self.xr,max_pos) \
-				+ "\n\tUsing r0 = {0:3.5f}".format(max_pos))
-			self.xr = max_pos
+		if self.xr > self.max_pos:
+			if self.xr != np.inf:
+				print("Warning: r0 > (maximal position in dataset), i.e." \
+					+ " {0:3.5f} > {1:3.5f}.".format(self.xr,self.max_pos) \
+					+ "\n\tUsing r0 = {0:3.5f}".format(self.max_pos))
+			self.xr = self.max_pos
 		# update parameters so that dx gets calculated again if
 		# self.xl or self.xr have changed
 		self.set_parameters()
 
 	def get_histogram(self,N_hist=100):
-		#
-		self.check_bounds_of_spatial_domain()
 		#
 		bin_edges = np.linspace(self.xl,self.xr,
 									endpoint=True,
@@ -244,30 +231,12 @@ class kramers_moyal:
 		#
 		return hist, bin_edges
 
-	def get_bin_indices(self,current_trajectory):
-		'''
-		This function takes a trajectory, and calculates
-		an array of indices such that
-		indices[i] is the bin number of the position trajectory[i]
-		'''
-		traj = current_trajectory.copy()
-		#
-		if len(traj) < self.N_discard:
-		    return np.array([])
-		#
-		traj = traj[:-self.N_discard]
-		#
-		indices = np.array((traj-self.xl)//self.dx,dtype=int)
-		return indices
 
 	def create_index(self):
 		#
 		# check that trajectories are loaded
 		if self.trajectories_loaded == False:
 			raise RuntimeError("Please load trajectories first.")
-		#
-		# get maximal and minimal values of trajectories
-		self.check_bounds_of_spatial_domain()
 		#
 		#
 		# traj_number:    enumerates the trajectories we consider
@@ -287,8 +256,8 @@ class kramers_moyal:
 							+ 'Processing trajectory {0} of {1}..'.format(
 								i+1,len(self.trajectories)
 									),end='\r')
-			current_indices = \
-					self.get_bin_indices(current_trajectory=current_trajectory)
+			current_indices = np.array((current_trajectory-self.xl)//self.dx,
+										dtype=int)
 			#
 			# number of current trajectory
 			self.traj_number = np.append(self.traj_number,
@@ -345,14 +314,7 @@ class kramers_moyal:
 						open( self.index_directory + "/index_bin_indices.pkl", "rb" ) )
 		#
 
-	def run_inference(self,N_shift):
-		#
-		if N_shift > self.N_discard:
-			raise RuntimeError("N_shift must be smaller or equal to N_discard,"\
-				+ " but here\n\tN_shift   = {0}\n\tN_discard = {1}".format(
-							N_shift,self.N_discard) \
-				+ "\nPlease either decrease N_shift, or generate " \
-				+ "new index with larger value for N_discard.")
+	def run_inference(self,N_shift=1):
 		#
 		D_array = np.zeros(self.N_bins,dtype=float)
 		a_array = np.zeros(self.N_bins,dtype=float)
@@ -368,7 +330,7 @@ class kramers_moyal:
 			print('Finished inference with {0} bins.                   '.format(
 											self.N_bins),end='\n')
 		#
-		output_dictionary = {'x':self.bin_centers,
+		output_dictionary = {'x':self.x,
 							'D':D_array,
 							'a':a_array}
 		return output_dictionary
@@ -383,18 +345,32 @@ class kramers_moyal:
 		delta_x_squared = 0.
 		# iterate through all trajectories that start in bin
 		for i,cur_index in enumerate(list_of_trajectories_starting_in_bin):
-			# fetch current trajectory
 			# note that traj_index[cur_index] labels the time at which the trajectory
 			# with number traj_number[cur_index] is in the bin of interest.
-			cur_traj = \
-				self.trajectories[self.traj_number[cur_index]]\
-				[self.traj_index[cur_index]:self.traj_index[cur_index]+N_shift+1]
-			# the "+1" needs to be added because the upper bound of an array is exclusive.
-			# For example, trajs[0][5:7], which corresponds to a shift of 1*dt, contains two datapoints.
-			cur_diff = cur_traj[-1]-cur_traj[0]
+			#
+			if (self.traj_index[cur_index]+N_shift) >= \
+				self.trajectory_lengths[self.traj_number[cur_index]]:
+				# this means that the length of the current trajectory segment
+				# is less than the lagtime we want to use. In that case we
+				# skip the current trajectory segment, but since we now have
+				# one datapoint less we need to subtract 1 from N
+				N -= 1
+				continue
+			#
+			cur_diff = self.trajectories[self.traj_number[cur_index]]   \
+								[self.traj_index[cur_index]+N_shift]   \
+					- self.trajectories[self.traj_number[cur_index]]   \
+										[self.traj_index[cur_index]]
 			#
 			delta_x += cur_diff
 			delta_x_squared += cur_diff**2
+		#
+		if N == 0:
+			print('Warning: Encountered a bin with N = 0 datapoints. To avoid '\
+				+ 'this issue, please i) change the interval size [xl,xr], '\
+				+ 'ii) decrease N_shift, or iii) use longer '\
+				+ 'trajectories.')
+			return np.nan, np.nan
 		#
 		D = ( delta_x_squared - (delta_x)**2/N  )/(2*N*self.dt*N_shift)
 		drift = delta_x / (N*self.dt*N_shift)
