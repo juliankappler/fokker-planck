@@ -19,7 +19,7 @@ Currently implemented features are
 
 ## Installation
 
-To install the module fractional_wave_equation, clone the repository and run the installation script:
+To install the module fokker_planck, clone the repository and run the installation script:
 
 ```bash
 >> git clone https://github.com/juliankappler/fokker-planck.git
@@ -28,6 +28,8 @@ To install the module fractional_wave_equation, clone the repository and run the
 ```
 
 ## Examples
+
+In the following we give some short examples of how the module is used. See the folder [examples/](examples/) for more detailed example notebooks.
 
 ### Parameter inference
 
