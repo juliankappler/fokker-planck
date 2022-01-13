@@ -4,7 +4,13 @@ import numpy as np
 import time
 import types
 
-class fokker_planck:
+import scipy.sparse
+import scipy.sparse.linalg
+
+
+
+
+class numerical:
 	'''
 	This is the base class that contains the shared codebase
 	'''
@@ -229,12 +235,51 @@ class fokker_planck:
 							}
 		return output_dictionary
 
+	def initialize_diffusivity(self,D,t=0):
+		# check if the diffusivity is a constant number, a constant function, or
+		# a time-dependent function:
+		if isinstance(D,float):
+			if self.verbose:
+				print('Found temporally and spatially constant diffusivity D')
+			self.D_array = D*np.ones(self.Nx+2,dtype=float)
+			self.D_time_dependent = False
+		elif isinstance(D,types.FunctionType):
+			try:
+				self.D_array = D(self.x_array,t)
+				if self.verbose:
+					print('Found time-dependent diffusivity function D(x,t)')
+				self.D_time_dependent = True
+			except TypeError:
+				self.D_array = D(self.x_array)
+				if self.verbose:
+					print('Found time-independent diffusivity function D(x)')
+				self.D_time_dependent = False
+
+	def initialize_drift(self,a,t=0):
+		# check if the drift is a constant number, a constant function, or
+		# a time-dependent function:
+		if isinstance(a,float):
+			if self.verbose:
+				print('Found temporally and spatially constant drift a')
+			self.a_array = a*np.ones(self.Nx+2,dtype=float)
+			self.a_time_dependent = False
+		elif isinstance(a,types.FunctionType):
+			try:
+				self.a_array = a(self.x_array,t)
+				if self.verbose:
+					print('Found time-dependent drift function a(x,t)')
+				self.a_time_dependent = True
+			except TypeError:
+				self.a_array = a(self.x_array)
+				if self.verbose:
+					print('Found time-independent drift function a(x)')
+				self.a_time_dependent = False
+		# if boundary conditions are periodic, check whether provided drift
+		# and diffusivity are periodic (a(-1) = a(1))
 
 
-class forward_euler(fokker_planck):
-	#
-
-	def simulate(self,D,a,P0):
+#	#
+	def forward_euler(self,D,a,P0):
 		#
 		# check if all parameters are set
 		if self.set_Nx == False:
@@ -245,45 +290,8 @@ class forward_euler(fokker_planck):
 			raise RuntimeError("Parameter Nt not set")
 		#
 		#
-		# check if the diffusivity is a constant number, a constant function, or
-		# a time-dependent function:
-		if isinstance(D,float):
-			if self.verbose:
-				print('Found temporally and spatially constant diffusivity D')
-			self.D_array = D*np.ones(self.Nx+2,dtype=float)
-			D_time_dependent = False
-		elif isinstance(D,types.FunctionType):
-			try:
-				self.D_array = D(self.x_array,0)
-				if self.verbose:
-					print('Found time-dependent diffusivity function D(x,t)')
-				D_time_dependent = True
-			except TypeError:
-				self.D_array = D(self.x_array)
-				if self.verbose:
-					print('Found time-independent diffusivity function D(x)')
-				D_time_dependent = False
-
-		# check if the drift is a constant number, a constant function, or
-		# a time-dependent function:
-		if isinstance(a,float):
-			if self.verbose:
-				print('Found temporally and spatially constant drift a')
-			self.a_array = a*np.ones(self.Nx+2,dtype=float)
-			a_time_dependent = False
-		elif isinstance(a,types.FunctionType):
-			try:
-				self.a_array = a(self.x_array,0)
-				if self.verbose:
-					print('Found time-dependent drift function a(x,t)')
-				a_time_dependent = True
-			except TypeError:
-				self.a_array = a(self.x_array)
-				if self.verbose:
-					print('Found time-independent drift function a(x)')
-				a_time_dependent = False
-		# if boundary conditions are periodic, check whether provided drift
-		# and diffusivity are periodic (a(-1) = a(1))
+		self.initialize_diffusivity(D=D)
+		self.initialize_drift(a=a)
 		#
 		if len(P0) == self.Nx:
 			self.P_array[0,1:-1] = P0.copy()
@@ -303,7 +311,6 @@ class forward_euler(fokker_planck):
 		else:
 			self.P_array[0,0] = self.get_boundary_value_left(self.P_array[0])
 			self.P_array[0,-1] = self.get_boundary_value_right(self.P_array[0])
-
 
 
 		self.system_time_at_start_of_simulation = time.time()
@@ -363,3 +370,123 @@ class forward_euler(fokker_planck):
 		if self.verbose:
 			self.print_time_remaining(step+1,end='\n')
 		return self.return_results()
+
+
+	def spectrum(self,D,a,k=5,t=0):
+		#
+		#
+		if self.set_Nx == False:
+			raise RuntimeError("Parameter Nx not set")
+		#
+		# construct diffusivity and drift vectors
+		self.initialize_diffusivity(D=D,t=t)
+		self.initialize_drift(a=a,t=t)
+		#
+		#
+		# if we consider periodic boundary conditions, we solve an eigenvalue
+		# problem with N+1 components (including the left boundary point),
+		# and later set the right boundary point equal to the left boundary point
+		if self.boundary_condition_left == 'periodic':
+			#
+			# diffusivity matrix
+			data = [self.D_array/self.dx**2,
+					-2*self.D_array/self.dx**2,
+					self.D_array/self.dx**2,
+					self.D_array/self.dx**2,
+					self.D_array/self.dx**2
+					]
+			offsets = [-1,0,1,self.Nx,-self.Nx]
+			M_D = scipy.sparse.dia_matrix((data, offsets),
+								shape=(self.Nx+1, self.Nx+1)
+										)
+			#
+			# drift matrix
+			data = [-self.a_array/(2*self.dx),
+					self.a_array/(2*self.dx),
+					-self.a_array/(2*self.dx),
+					self.a_array/(2*self.dx)
+					]
+			offsets = [-1,1,self.Nx,-self.Nx]
+			M_a = scipy.sparse.dia_matrix((data, offsets),
+								shape=(self.Nx+1, self.Nx+1))
+			#
+			M_full = (-M_a + M_D)
+			#
+			# boundary condition matrix
+			ex = np.ones(self.Nx+1)
+			data = [ex,ex]
+			offsets = [0,-self.Nx-1]
+			M_B = scipy.sparse.dia_matrix((data, offsets),
+								shape=(self.Nx+2, self.Nx+1)
+										)
+		else:
+			#
+			# diffusivity matrix
+			data = [self.D_array/self.dx**2,
+					-2*self.D_array/self.dx**2,
+					self.D_array/self.dx**2
+					]
+			offsets = [0,1,2]
+			M_D = scipy.sparse.dia_matrix((data, offsets),
+								shape=(self.Nx, self.Nx+2)
+										)
+			#
+			# drift matrix
+			data = [-self.a_array/(2*self.dx),
+					self.a_array/(2*self.dx)]
+			offsets = [0,2]
+			M_a = scipy.sparse.dia_matrix((data, offsets),
+								shape=(self.Nx, self.Nx+2)
+										)
+			#
+			# boundary condition matrix
+			data = [np.ones(self.Nx)]
+			offsets = [-1]
+			M_B = scipy.sparse.dia_matrix((data, offsets),
+								shape=(self.Nx+2, self.Nx)
+										)
+			#
+			if self.boundary_condition_left == 'no-flux':
+				A11_times_two_dx = 2 * self.a_array[0] * self.dx \
+								 + self.D_array[2] - 4 * self.D_array[1] \
+								 + 3 * self.D_array[0]
+				A12 = -self.D_array[0]
+				#
+				data = np.array([-4,1.])*A12/(2*A11_times_two_dx - 3*A12)
+				row = np.array([0,0])
+				col = np.array([1,2])
+				#
+				M_B_L = scipy.sparse.coo_matrix((data, (row, col)),
+							shape=(self.Nx+2, self.Nx))
+				M_B = M_B + M_B_L.todia()
+			#
+			if self.boundary_condition_right == 'no-flux':
+				A21_times_two_dx = 2 * self.a_array[self.Nx+1] * self.dx \
+						- 3 * self.D_array[self.Nx+1] + 4 * self.D_array[self.Nx] \
+						- self.D_array[self.Nx-1]
+				A22 = -self.D_array[self.Nx+1]
+				#
+				data = np.array([-1,4.])*A22/(2*A21_times_two_dx + 3*A22)
+				row = np.array([self.Nx+1,self.Nx+1])
+				col = np.array([self.Nx-2,self.Nx-1])
+				#
+				M_B_R = scipy.sparse.coo_matrix((data, (row, col)),
+							shape=(self.Nx+2, self.Nx))
+				M_B = M_B + M_B_R.todia()
+			#
+			M_full = (-M_a + M_D).dot(M_B)
+		#
+		# solve eigenvalue problem
+		vals, vecs_ = scipy.sparse.linalg.eigs(M_full,
+												k=k,
+												which='SM')
+		#
+		vecs = np.zeros([k,self.Nx+2],dtype=float)
+		#
+		for i,e in enumerate(vecs_.T):
+			vecs[i] = M_B.dot(e.real)
+		#
+		output_dictionary = {'eigenvalues':vals.real,
+							'eigenvectors':vecs}
+		#
+		return output_dictionary

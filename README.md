@@ -14,6 +14,7 @@ where <i>P(x,t|x<sub>0</sub>,t<sub>0</sub>)</i> is the transition probability de
 Currently implemented features are
 
 * **Parameter inference** for time-independent diffusivity <i>D(x)</i> and drift <i>a(x)</i> from given realizations of the Langevin equation corresponding to Eq. (1) <a href="#ref_1">[1]</a>.
+* **Numerical calculation of the spectrum** of the Fokker-Planck operator defined by the right-hand side of Eq. (1), for various boundary conditions (absorbing, no-flux/reflecting, periodic).
 * **Numerical simulation** of Eq. (1) on a finite domain for various boundary conditions (absorbing, no-flux/reflecting, periodic, general robin boundary conditions) <a href="#ref_2">[2]</a>.
 
 
@@ -57,7 +58,7 @@ parameters = {'trajectories_filename':trajectories_filename,
             'dt':dt}
 
 # create an instance of the kramers_moyal class
-inference = fokker_planck.inference.kramers_moyal(parameters=parameters)
+inference = fokker_planck.inference(parameters=parameters)
 
 # load the trajectorial data (stored in a pickle file)
 inference.load_trajectories()

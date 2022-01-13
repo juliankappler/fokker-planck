@@ -1,2 +1,2 @@
-import fokker_planck.inference
-import fokker_planck.numerical
+from fokker_planck.inference import inference
+from fokker_planck.numerical import numerical

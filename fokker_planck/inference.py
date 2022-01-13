@@ -3,7 +3,7 @@
 import numpy as np
 import pickle
 
-class kramers_moyal:
+class inference:
 	'''
 	This is the base class that contains the shared codebase for both the
 	linear and nonlinear integrators
