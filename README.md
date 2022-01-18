@@ -1,4 +1,4 @@
-# Fokker-Planck: Python module for numerical solution and parameter inference for the 1D Fokker-Planck equation
+# Fokker-Planck: Python module for numerical solution, calculation of spectra, and parameter inference for the 1D Fokker-Planck equation
 
 ## About
 
