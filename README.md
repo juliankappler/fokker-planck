@@ -106,7 +106,7 @@ parameters = {'xl':xl, # left boundary of domain
 fokker_planck_numerical = fokker_planck.numerical(parameters=parameters)
 
 # Calculate the 4 slowest-decaying eigenfunctions of the system
-k =4
+k = 4
 result = fokker_planck_numerical.spectrum(a=a, # drift
                            D=D, # diffusivity
                            k=k) # number of eigenfunctions to calculate
@@ -122,8 +122,7 @@ Plotting the resulting eigenvalues and eigenvalues yields:
 
 ![Imagel](https://raw.githubusercontent.com/juliankappler/fokker-planck/master/examples/spectrum/spectrum-ornstein-uhlenbeck.jpg)
 
-Note that since the drift in this example is very strongly confining the particle to the origin <i>x = 0</i>, the spectrum is on the scales shown in the above plot independent of the boundary conditions. As detailed in [in this jupyter notebook](examples/spectrum/spectrum%20-%20Ornstein-Uhlenbeck%20process.ipynb), the spectrum looks (on the scales shown in the plot) identical of one uses reflecting boundary conditions instead of absorbing boundary conditions. However, of course there are small differences in the two spectra.
-
+Note that since the drift in this example is very strongly confining the particle to the origin <i>x = 0</i>, the spectrum is on the scales shown in the above plot independent of the boundary conditions. As detailed in [in this jupyter notebook](examples/spectrum/spectrum%20-%20Ornstein-Uhlenbeck%20process.ipynb), if one calculates the spectrum for reflecting boundary conditions (as opposed to absorbing boundary conditions), one obtains identically looking plots. Of course there are small differences in the two spectra, which are simply not visible on the scales used for the plots.
 
 ## References
 
