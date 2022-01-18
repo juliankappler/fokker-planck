@@ -28,6 +28,8 @@ class numerical:
 		self.dt = 'not set'
 		self.Nt = 'not set'
 		self.saving_stride = 1
+		self.xl = -1.
+		self.xr = +1.
 		#
 		self.set_parameters(parameters=parameters)
 
@@ -61,14 +63,30 @@ class numerical:
 			pass
 		#
 		try:
+			self.xl = parameters['xl']
+		except KeyError:
+			pass
+		#
+		try:
+			self.xr = parameters['xr']
+		except KeyError:
+			pass
+		#
+		try:
 			self.saving_stride = int(parameters['saving_stride'])
 		except KeyError:
 			pass
 
+		#
+		if self.xl >= self.xr:
+			raise RuntimeError("To obtain a well-defined interval [xl,xr], "\
+					+ "we need to have xl < xr.")
+		#
 		if self.set_Nx:
-			self.dx = 2./(self.Nx + 1)
+			self.dx = (self.xr - self.xl)/(self.Nx + 1)
 			self.one_by_dx_squared = 1/self.dx**2
-			self.x_array = np.arange(self.Nx+2,dtype=float)*self.dx - 1.
+			self.x_array =  np.arange(self.Nx+2,dtype=float)*self.dx \
+							+ self.xl
 		if self.set_dt:
 			self.t_array = np.arange(self.Nt+1,dtype=float)*self.dt
 		if self.set_Nx and self.set_dt:
@@ -128,11 +146,15 @@ class numerical:
 				'saving_stride':self.saving_stride,
 				'boundary_condition_left':self.boundary_condition_left,
 				'boundary_condition_right':self.boundary_condition_right,
+				'xl':self.xl,
+				'xr':self.xr,
 			 }
 		if print_parameters:
 			print("Parameters set for this instance:")
 			print("verbose       = {0}".format(self.verbose))
 			print("Nx            = {0}".format(self.Nx))
+			print("xl            = {0}".format(self.xl))
+			print("xr            = {0}".format(self.xr))
 			print("Nt            = {0}".format(self.Nt))
 			print("dt            = {0}".format(self.dt))
 			print("saving_stride = {0}".format(self.saving_stride))
@@ -229,6 +251,7 @@ class numerical:
 							'y':self.P_array,
 							'dx':self.dx,'Nx':self.Nx,
 							'dt':self.dt,'Nt':self.Nt,
+							'xl':self.xl,'xr':self.xr,
 							'saving_stride':self.saving_stride,
 							'boundary_condition_left':self.boundary_condition_left,
 							'boundary_condition_right':self.boundary_condition_right,
@@ -487,6 +510,7 @@ class numerical:
 			vecs[i] = M_B.dot(e.real)
 		#
 		output_dictionary = {'eigenvalues':vals.real,
-							'eigenvectors':vecs}
+							'eigenvectors':vecs,
+							'x':self.x_array}
 		#
 		return output_dictionary
