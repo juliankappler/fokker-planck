@@ -122,10 +122,10 @@ Plotting the resulting eigenvalues and eigenvalues yields:
 
 ![Imagel](https://raw.githubusercontent.com/juliankappler/fokker-planck/master/examples/spectrum/spectrum-ornstein-uhlenbeck.jpg)
 
-Note that since the drift in this example is very strongly confining the particle to the origin <i>x = 0</i>, the spectrum is on the scales shown in the above plot independent of the boundary conditions. As detailed in [in this jupyter notebook](examples/spectrum/spectrum%20-%20Ornstein-Uhlenbeck%20process.ipynb), if one calculates the spectrum for reflecting boundary conditions (as opposed to absorbing boundary conditions), one obtains identically looking plots. Of course there are small differences in the two spectra, which are simply not visible on the scales used for the plots.
+Note that since the drift in this example is very strongly confining the particle to the origin <i>x = 0</i>, the spectrum is on the scales shown in the above plot independent of the boundary conditions. As detailed in [in this jupyter notebook](examples/spectrum/spectrum%20-%20Ornstein-Uhlenbeck%20process.ipynb), if one calculates the spectrum for reflecting boundary conditions (as opposed to absorbing boundary conditions), one obtains identically looking plots. Of course there are small differences in the two spectra (absorbing/reflecting boundary conditions), which are simply not visible on the scales used for the plots.
 
 ## References
 
-<a id="ref_1">[1] **Experimental Measurement of Relative Path Probabilities and Stochastic Actions**. Jannes Gladrow, Ulrich F. Keyser, Ronojoy Adhikari, Julian Kappler. Physical Review X, vol. 11, p. 031022 (2021). DOI: [10.1103/PhysRevX.11.031022](https://doi.org/10.1103/PhysRevX.11.031022).</a>
+<a id="ref_1">[1] **Experimental Measurement of Relative Path Probabilities and Stochastic Actions**. Jannes Gladrow, Ulrich F. Keyser, Ronojoy Adhikari, Julian Kappler. <i>Physical Review X</i>, vol. 11, p. 031022 (2021). DOI: [10.1103/PhysRevX.11.031022](https://doi.org/10.1103/PhysRevX.11.031022).</a>
 
-<a id="ref_2">[2] **Stochastic action for tubes: Connecting path probabilities to measurement**. Julian Kappler, Ronojoy Adhikari. Physical Review Research, vol. 2, p. 023407, (2020). DOI: [10.1103/PhysRevResearch.2.023407](https://doi.org/10.1103/PhysRevResearch.2.023407).</a>
+<a id="ref_2">[2] **Stochastic action for tubes: Connecting path probabilities to measurement**. Julian Kappler, Ronojoy Adhikari. <i>Physical Review Research</i>, vol. 2, p. 023407, (2020). DOI: [10.1103/PhysRevResearch.2.023407](https://doi.org/10.1103/PhysRevResearch.2.023407).</a>
