@@ -320,7 +320,7 @@ class numerical:
 			self.P_array[0,1:-1] = P0.copy()
 		elif len(P0) == (self.Nx+2):
 			self.P_array[0] = P0.copy()
-			if verbose:
+			if self.verbose:
 				print("Provided boundary values from initial condition will "\
 					+ "be discarded.")
 		else:
@@ -374,9 +374,9 @@ class numerical:
 					print(next_P[0],next_P[-1])
 			#
 			# update D and a (only if they are time-dependent)
-			if D_time_dependent:
+			if self.D_time_dependent:
 				self.D_array = D(self.x_array,next_time)
-			if a_time_dependent:
+			if self.a_time_dependent:
 				self.a_array = a(self.x_array,next_time)
 			#
 			# update boundary points if not periodic
