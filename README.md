@@ -5,7 +5,7 @@
 This python module contains tools for working with the **one-dimensional Fokker-Planck equation**
 
 <p align="center">
-<img width="935" alt="image" src="https://user-images.githubusercontent.com/37583039/153507977-925f3e25-3a74-4f75-8c0d-974d3a476c04.png">
+<img width="800" alt="image" src="https://user-images.githubusercontent.com/37583039/153507977-925f3e25-3a74-4f75-8c0d-974d3a476c04.png">
 </p>
 
 <!-- latex code: \partial_t P(x,t|x_0,t_0) = - \partial_x \left[ a(x,t)P(x,t|x_0,t_0)\right]+ \partial_x^2 \left[ D(x,t)P(x,t|x_0,t_0)\right] \qquad (1), -->
