@@ -372,7 +372,7 @@ class inference:
 				+ 'trajectories.')
 			return np.nan, np.nan
 		#
-		D = ( delta_x_squared - (delta_x)**2/N  )/(2*N*self.dt*N_shift)
+		D = delta_x_squared /(2*N*self.dt*N_shift)
 		drift = delta_x / (N*self.dt*N_shift)
 		#
 		return D, drift

@@ -20,6 +20,8 @@ class numerical:
 		as dictionary in the argument parameters
 		'''
 		#
+		self.verbose = True
+		#
 		self.set_Nx = False
 		self.set_dt = False
 		self.set_Nt = False
@@ -42,7 +44,7 @@ class numerical:
 		try:
 			self.verbose = parameters['verbose']
 		except KeyError:
-			self.verbose = True
+			pass
 		#
 		try:
 			self.Nx = int(parameters['Nx'])
