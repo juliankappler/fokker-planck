@@ -33,6 +33,14 @@ class numerical:
 		self.xl = -1.
 		self.xr = +1.
 		#
+		self.boundary_condition_left = 'absorbing'
+		self.boundary_condition_right = 'absorbing'
+		#
+		self.influx_locations = []
+		self.influx_amplitudes = []
+		self.influx_indices = []
+		self.influx_amplitudes_dt = []
+		#
 		self.set_parameters(parameters=parameters)
 
 
@@ -83,6 +91,8 @@ class numerical:
 		if self.xl >= self.xr:
 			raise RuntimeError("To obtain a well-defined interval [xl,xr], "\
 					+ "we need to have xl < xr.")
+
+
 		#
 		if self.set_Nx:
 			self.dx = (self.xr - self.xl)/(self.Nx + 1)
@@ -101,16 +111,46 @@ class numerical:
 					+ "{0:3.5f} > 0.5. Simulation ".format(self.dt/self.dx**2) \
 					+ "will likely be unstable.")
 
+		try:
+			self.influx_locations = np.array(parameters['influx_locations'])
+			if len(self.influx_locations) > 0:
+				if np.min(self.influx_locations) < self.xl \
+				  or np.max(self.influx_locations) > self.xr:
+					raise RuntimeError("There are locations of influx "\
+					+ "that are outside of the system:\n"\
+					+ "system bounds = [{0.3.2f}, {1:3.2f}]\n".format(
+								self.xl,self.xr) \
+					+ "influx_locations = {0}".format(self.influx_locations)
+					)
+			self.influx_indices = np.zeros_like(self.influx_locations)
+			for i,e in enumerate(self.influx_locations):
+				#
+				self.influx_indices[i] = np.argmin(np.fabs(self.x_array - e))
+			#
+			if len(np.unique(self.influx_indices)) != len(self.influx_indices):
+				raise RuntimeError("Please use unique locations for influx")
+		except KeyError:
+			pass
+
+		try:
+			self.influx_amplitudes = np.array(parameters['influx_amplitudes'])
+			if len(self.influx_locations) != len(self.influx_amplitudes):
+				raise RuntimeError("arrays with influx locations and amplitudes"\
+				 	"must have the same length")
+			#
+			self.influx_amplitudes_dt = self.influx_amplitudes * self.dt
+		except KeyError:
+			pass
+
 		# set boundary conditions
 		try:
 			self.boundary_condition_left = parameters['boundary_condition_left']
 		except KeyError:
-			self.boundary_condition_left = 'absorbing'
-
+			pass
 		try:
 			self.boundary_condition_right = parameters['boundary_condition_right']
 		except KeyError:
-			self.boundary_condition_right = 'absorbing'
+			pass
 
 		#
 		if self.boundary_condition_left == 'robin':
@@ -137,6 +177,7 @@ class numerical:
 				+ ", but left boundary condition is not.")
 
 
+
 	def get_parameters(self,print_parameters=False):
 		'''
 		return parameters of an existing instance of this class
@@ -150,16 +191,20 @@ class numerical:
 				'boundary_condition_right':self.boundary_condition_right,
 				'xl':self.xl,
 				'xr':self.xr,
+				'influx_locations':self.influx_locations,
+				'influx_amplitudes':self.influx_amplitudes,
 			 }
 		if print_parameters:
 			print("Parameters set for this instance:")
-			print("verbose       = {0}".format(self.verbose))
-			print("Nx            = {0}".format(self.Nx))
-			print("xl            = {0}".format(self.xl))
-			print("xr            = {0}".format(self.xr))
-			print("Nt            = {0}".format(self.Nt))
-			print("dt            = {0}".format(self.dt))
-			print("saving_stride = {0}".format(self.saving_stride))
+			print("verbose           = {0}".format(self.verbose))
+			print("Nx                = {0}".format(self.Nx))
+			print("xl                = {0}".format(self.xl))
+			print("xr                = {0}".format(self.xr))
+			print("Nt                = {0}".format(self.Nt))
+			print("dt                = {0}".format(self.dt))
+			print("influx_locations  = {0}".format(self.influx_locations))
+			print("influx_amplitudes = {0}".format(self.influx_amplitudes))
+			print("saving_stride     = {0}".format(self.saving_stride))
 			print("boundary_condition_left = {0}".format(\
 						self.boundary_condition_left))
 			print("boundary_condition_right = {0}".format(\
@@ -328,6 +373,9 @@ class numerical:
 		else:
 			raise RuntimeError("Invalid initial condition. Initial condition " \
 					+ "must be array of length Nx or Nx+2.")
+		#
+		self.P_array[0][self.influx_indices] += self.influx_amplitudes_dt
+		#
 		# set initial values for P( x = -1 ) and P( x = 1 )
 		if self.boundary_condition_left == 'periodic':
 			if self.P_array[0,0] != self.P_array[0][-1]:
@@ -359,6 +407,8 @@ class numerical:
 						)
 				)
 			#
+			next_P[self.influx_indices] += self.influx_amplitudes_dt
+			#
 			# Set boundary conditions at next time step
 			# For periodic boundary conditions, we use the current diffusivity
 			# and drift in the boundary conditions. For all other boundary
@@ -372,8 +422,8 @@ class numerical:
 			if self.boundary_condition_left == 'periodic':
 				next_P[0] = current_P[0] + self.get_boundary_value_left(current_P)
 				next_P[-1] = next_P[0]
-				if step % 10000 == 0:
-					print(next_P[0],next_P[-1])
+				#if step % 10000 == 0:
+				#	print(next_P[0],next_P[-1])
 			#
 			# update D and a (only if they are time-dependent)
 			if self.D_time_dependent:
