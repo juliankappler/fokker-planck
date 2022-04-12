@@ -122,7 +122,7 @@ class numerical:
 								self.xl,self.xr) \
 					+ "influx_locations = {0}".format(self.influx_locations)
 					)
-			self.influx_indices = np.zeros_like(self.influx_locations)
+			self.influx_indices = np.zeros_like(self.influx_locations,dtype=int)
 			for i,e in enumerate(self.influx_locations):
 				#
 				self.influx_indices[i] = np.argmin(np.fabs(self.x_array - e))
@@ -394,7 +394,6 @@ class numerical:
 				if ( step % int(self.Nt/100) == 0 ) and step > 0:
 					self.print_time_remaining(step)
 			#
-
 			# calculate values of interior points in next timestep
 			next_P = current_P.copy()
 			next_P[1:-1] +=  self.dt * self.one_by_dx_squared \
@@ -445,6 +444,34 @@ class numerical:
 		if self.verbose:
 			self.print_time_remaining(step+1,end='\n')
 		return self.return_results()
+
+
+	def get_exit_rate(self,result):
+		#
+		x = result['x']
+		y = result['y']
+		t = result['t']
+		dt = t[1] - t[0]
+		#
+		integrals = np.trapz(y,x,axis=1)
+		exit_rate = np.zeros_like(t,dtype=float)
+		#
+		exit_rate[0] = (integrals[1] - integrals[0])/(dt)
+		exit_rate[0] /= integrals[0]
+		#
+		exit_rate[1:-1] = (integrals[2:] - integrals[:-2])/(2*dt)
+		exit_rate[1:-1] /= integrals[1:-1]
+		#
+		exit_rate[-1] = (integrals[-1] - integrals[-2])/(dt)
+		exit_rate[-1] /= integrals[-1]
+		#
+		exit_rate *= -1
+		#
+		output_dictionary = {'integrals':integrals,
+							'exit_rate':exit_rate,
+							't':t}
+		#
+		return output_dictionary
 
 
 	def spectrum(self,D,a,k=5,t=0):
