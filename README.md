@@ -27,7 +27,7 @@ To install the module fokker_planck, clone the repository and run the installati
 ```bash
 >> git clone https://github.com/juliankappler/fokker-planck.git
 >> cd fokker-planck
->> python setup.py install
+>> pip install .
 ```
 
 ## Examples
